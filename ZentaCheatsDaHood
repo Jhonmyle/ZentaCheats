@@ -19,7 +19,7 @@ local Fov = Drawing.new("Circle")
 local holdingMouseButton = false
 local lastToolUse = 0
 local HitPoint = Drawing.new("Circle")
-local FovParts = {}  -- Store the parts for square and triangle FOV
+local FovParts = {}
 
 -- // Game Load Check // --
 if not game:IsLoaded() then
@@ -36,7 +36,7 @@ end
 
 -- // Update FOV Function // --
 local function updateFov()
-	local settings = getgenv().SharpSSilent.FovSettings
+	local settings = getgenv().ZentaCheatSSilent.FovSettings
 	clearFovParts()
 
 	if settings.FovShape == "Square" then
@@ -73,10 +73,10 @@ local function updateFov()
 			line.Transparency = settings.FovTransparency
 			table.insert(FovParts, line)
 		end
-	else  -- Default to Circle
+	else
 		Fov.Visible = settings.FovVisible
 		Fov.Radius = settings.FovRadius
-		Fov.Position = Vector2(Mouse.X, Mouse.Y + (G:GetService("GuiService"):GetGuiInset().Y))
+		Fov.Position = Vector2(Mouse.X, Mouse.Y + G:GetService("GuiService"):GetGuiInset().Y)
 		Fov.Color = settings.FovColor
 		Fov.Thickness = settings.FovThickness
 		Fov.Transparency = settings.FovTransparency
@@ -106,12 +106,12 @@ end
 local function isPartInFovAndVisible(part)
 	local screenPoint, onScreen = CurrentCamera:WorldToScreenPoint(part.Position)
 	local distance = (Vector2(screenPoint.X, screenPoint.Y) - Vector2(Mouse.X, Mouse.Y)).Magnitude
-	return onScreen and distance <= getgenv().SharpSSilent.FovSettings.FovRadius
+	return onScreen and distance <= getgenv().ZentaCheatSSilent.FovSettings.FovRadius
 end
 
 -- // Check if Part is Visible // --
 local function isPartVisible(part)
-	if not getgenv().SharpSSilent.WallCheck then 
+	if not getgenv().ZentaCheatSSilent.WallCheck then
 		return true
 	end
 	local origin = CurrentCamera.CFrame.Position
@@ -144,17 +144,17 @@ local function getClosestHitPoint(character)
 end
 
 -- // Get Velocity Function // --
-local oldPredictionY = getgenv().SharpSSilent.Prediction
+local oldPredictionY = getgenv().ZentaCheatSSilent.Prediction
 local function getVelocity(player, part)
 	if player and player.Character then
 		local velocity = player.Character[part].Velocity
-		if velocity.Y < -30 and getgenv().SharpSSilent.Resolver then
-			getgenv().SharpSSilent.Prediction = 0
+		if velocity.Y < -30 and getgenv().ZentaCheatSSilent.Resolver then
+			getgenv().ZentaCheatSSilent.Prediction = 0
 			return velocity
-		elseif velocity.Magnitude > 50 and getgenv().SharpSSilent.Resolver then
+		elseif velocity.Magnitude > 50 and getgenv().ZentaCheatSSilent.Resolver then
 			return player.Character:FindFirstChild("Humanoid").MoveDirection * 16
 		else
-			getgenv().SharpSSilent.Prediction = oldPredictionY
+			getgenv().ZentaCheatSSilent.Prediction = oldPredictionY
 			return velocity
 		end
 	end
@@ -185,13 +185,18 @@ end
 
 -- // Toggle Feature // --
 local function toggleFeature()
-	getgenv().SharpSSilent.Enabled = not getgenv().SharpSSilent.Enabled
-	local status = getgenv().SharpSSilent.Enabled and "Sharp Enabled" or "Sharp Disabled"
-	sendNotification("Sharp [S] Silent", status, "rbxassetid://17561420493")
-	if not getgenv().SharpSSilent.Enabled then
+	local cheatSettings = getgenv().ZentaCheatSSilent
+	cheatSettings.Enabled = not cheatSettings.Enabled
+
+	local statusMessage = cheatSettings.Enabled and "ZentaCheat Enabled" or "ZentaCheat Disabled"
+	sendNotification("ZentaCheat", statusMessage, "rbxassetid://17561420493")
+
+	if not cheatSettings.Enabled then
 		Fov.Visible = false
 		HitPoint.Visible = false
 		clearFovParts()
+	else
+		updateFov()
 	end
 end
 
@@ -202,7 +207,7 @@ end
 
 -- // Keybind Listener // --
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
-	if not gameProcessed and input.KeyCode == getKeyCodeFromString(getgenv().SharpSSilent.Keybind) then
+	if not gameProcessed and input.KeyCode == getKeyCodeFromString(getgenv().ZentaCheatSSilent.Keybind) then
 		toggleFeature()
 	elseif input.UserInputType == Enum.UserInputType.MouseButton1 then
 		holdingMouseButton = true
@@ -217,13 +222,13 @@ end)
 
 -- // Main Loop // --
 RunService.RenderStepped:Connect(function()
-	if getgenv().SharpSSilent.Enabled then
+	if getgenv().ZentaCheatSSilent.Enabled then
 		Target = getClosestPlayer()
 		updateFov()
 		if Target and Target.Character then
 			local closestPart, closestPoint = getClosestHitPoint(Target.Character)
 			if closestPart and closestPoint then
-				local hitPointSettings = getgenv().SharpSSilent.HitPoint
+				local hitPointSettings = getgenv().ZentaCheatSSilent.HitPoint
 				if hitPointSettings.ShowHitPoint then
 					HitPoint.Visible = true
 					local screenPoint = CurrentCamera:WorldToViewportPoint(closestPoint)
@@ -239,7 +244,7 @@ RunService.RenderStepped:Connect(function()
 
 				if holdingMouseButton then
 					local velocity = getVelocity(Target, closestPart.Name)
-					ReplicatedStorage.MainEvent:FireServer("UpdateMousePosI", closestPoint + velocity * getgenv().SharpSSilent.Prediction)
+					ReplicatedStorage.MainEvent:FireServer("UpdateMousePosI", closestPoint + velocity * getgenv().ZentaCheatSSilent.Prediction)
 				end
 			end
 		else
@@ -252,16 +257,26 @@ end)
 local function hookTool(tool)
 	if tool:IsA("Tool") then
 		tool.Activated:Connect(function()
-			if Target and Target.Character and tick() - lastToolUse > 0.1 then  -- Debounce for 0.1 seconds
+			if Target and Target.Character and tick() - lastToolUse > 0.1 then
 				lastToolUse = tick()
 				local closestPart, closestPoint = getClosestHitPoint(Target.Character)
 				if closestPart and closestPoint then
 					local velocity = getVelocity(Target, closestPart.Name)
-					ReplicatedStorage.MainEvent:FireServer("UpdateMousePosI", closestPoint + velocity * getgenv().SharpSSilent.Prediction)
+					ReplicatedStorage.MainEvent:FireServer("UpdateMousePosI", closestPoint + velocity * getgenv().ZentaCheatSSilent.Prediction)
 				end
 			end
 		end)
 	end
+end
+
+-- // Notification Function // --
+local function sendNotification(title, text, icon)
+	StarterGui:SetCore("SendNotification", {
+		Title = title,
+		Text = text,
+		Icon = icon,
+		Duration = 3
+	})
 end
 
 local function onCharacterAdded(character)
@@ -275,3 +290,4 @@ LocalPlayer.CharacterAdded:Connect(onCharacterAdded)
 if LocalPlayer.Character then
 	onCharacterAdded(LocalPlayer.Character)
 end
+
